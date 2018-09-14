@@ -1,5 +1,7 @@
 package ru.tests;
 
+import java.util.*;
+
 import io.restassured.*;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
@@ -8,9 +10,14 @@ import static io.restassured.RestAssured.*;
 import org.junit.*;
 import static org.junit.Assert.*;
 
-import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RestAPITest {
+
+    List<String> ids;
+
+    final Logger logger = LoggerFactory.getLogger(RestAPITest.class);
 
     String[] firstNames = {"Tom","Peter","Bern","Harry","Anna"};
     String[] lastNames = {"Connor","Smith","Doe","Potter","Adams"};
@@ -18,12 +25,12 @@ public class RestAPITest {
     @Before
     public void setup() {
         RestAssured.baseURI = "http://localhost:28080/rs/users";
-        reateTestData(firstNames, lastNames);
+        ids = createTestData(firstNames, lastNames);
+//        logger.info("test message");
     }
 
     @After
     public void tearDown() {
-        // add method to clean test data
         cleanTable();
     }
 
@@ -43,9 +50,10 @@ public class RestAPITest {
     @Test
     public void selectAnyRowTest() {
 
-    	String userid = "3";
+        int row = 3;
+        System.out.println(ids);
 
-    	Response response = given().pathParam("userid",userid)
+    	Response response = given().pathParam("userid",ids.get(row-1))
     						.when().get("/{userid}")
     						.then().statusCode(200)
     							   .contentType("text/plain;charset=utf-8")
@@ -53,7 +61,7 @@ public class RestAPITest {
 
     	String body = response.getBody().asString();
     	System.out.println(body);
-    	assertEquals("No value was found","[{ID=3, FIRSTNAME="+firstNames[2]+", LASTNAME="+lastNames[2]+"}]",body);
+    	assertEquals("No value was found","[{ID="+ids.get(row-1)+", FIRSTNAME="+firstNames[row-1]+", LASTNAME="+lastNames[row-1]+"}]",body);
     }
 
     @Test
@@ -89,17 +97,17 @@ public class RestAPITest {
 
     @Test
     public void updateAnyRawTest() {
-    	
-    	String new_first_name = "Amy";
-    	String userid = "4";
 
-    	Response response = given().pathParam("userid",userid).header("firstName",new_first_name)
+        int row = 4;
+    	String new_first_name = "Amy";
+
+    	Response response = given().pathParam("userid",ids.get(row-1)).header("firstName",new_first_name)
                         	.when().put("/{userid}")
                         	.then().statusCode(200)
                         	.extract().response();
 
-        String body_v = given().pathParam("userid",userid).get("/{userid}").getBody().asString();
-        assertTrue("Failed to update data", body_v.contains("ID="+userid+", FIRSTNAME="+new_first_name));
+        String body_v = given().pathParam("userid",ids.get(row-1)).get("/{userid}").getBody().asString();
+        assertTrue("Failed to update data", body_v.contains("ID="+ids.get(row-1)+", FIRSTNAME="+new_first_name));
     }
 
     @Test
@@ -179,16 +187,29 @@ public class RestAPITest {
         assertEquals("Invalid values inserted","[{ID=3, FIRSTNAME=Test','Test')--, LASTNAME=}]",body);
     }
 
-    public void createTestData(String[] names, String[] surnames) {
+    public List<String> createTestData(String[] names, String[] surnames) {
 
         for (int i=0; i<names.length ; i++) {
-            Response response = given().header("firstName",names[i])
+            given().header("firstName",names[i])
                    .header("lastName",surnames[i])
             .when().post()
             .then().statusCode(200)
             .extract().response();
         }
 
+        Response response = when().get()
+                            .then().statusCode(200)
+                            .extract().response();
+
+        List<String> idss = new ArrayList<String>();
+
+        List<String> items = Arrays.asList(response.getBody().asString().split("},\\s"));
+        for (String i : items) {
+            String id = i.substring(i.indexOf("ID=")+3, i.indexOf(","));
+            idss.add(id);
+        }
+
+        return idss;
     }
 
     public void cleanTable() {
