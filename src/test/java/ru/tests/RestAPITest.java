@@ -37,12 +37,12 @@ public class RestAPITest {
     @Test
     public void selectAllDataTest() {
 
-    	Response response = when().get()
-    						.then().statusCode(200)
-    							   .contentType("text/plain;charset=utf-8")
-    						.extract().response();
+        Response response = when().get()
+                            .then().statusCode(200)
+                                   .contentType("text/plain;charset=utf-8")
+                            .extract().response();
 
-    	List<String> items = Arrays.asList(response.getBody().asString().split("},\\s"));
+        List<String> items = Arrays.asList(response.getBody().asString().split("},\\s"));
 
         assertEquals("Invalid count of rows",firstNames.length,items.size());
     }
@@ -53,28 +53,28 @@ public class RestAPITest {
         int row = 3;
         System.out.println(ids);
 
-    	Response response = given().pathParam("userid",ids.get(row-1))
-    						.when().get("/{userid}")
-    						.then().statusCode(200)
-    							   .contentType("text/plain;charset=utf-8")
-    						.extract().response();					
+        Response response = given().pathParam("userid",ids.get(row-1))
+                            .when().get("/{userid}")
+                            .then().statusCode(200)
+                                   .contentType("text/plain;charset=utf-8")
+                            .extract().response();                  
 
-    	String body = response.getBody().asString();
-    	System.out.println(body);
-    	assertEquals("No value was found","[{ID="+ids.get(row-1)+", FIRSTNAME="+firstNames[row-1]+", LASTNAME="+lastNames[row-1]+"}]",body);
+        String body = response.getBody().asString();
+        System.out.println(body);
+        assertEquals("No value was found","[{ID="+ids.get(row-1)+", FIRSTNAME="+firstNames[row-1]+", LASTNAME="+lastNames[row-1]+"}]",body);
     }
 
     @Test
     public void insertNewValueTest() {
 
-    	String firstName = "Clint";
-    	String lastName  = "Eastwood";
+        String firstName = "Clint";
+        String lastName  = "Eastwood";
 
-		Response response = given().header("firstName",firstName)
-                        		   .header("lastName",lastName)
-                        	.when().post()
-                        	.then().statusCode(200)
-                        	.extract().response();
+        Response response = given().header("firstName",firstName)
+                                   .header("lastName",lastName)
+                            .when().post()
+                            .then().statusCode(200)
+                            .extract().response();
 
         String body = response.getBody().asString().replace("[","").replace("]","");
         String body_v = get().getBody().asString();
@@ -84,27 +84,27 @@ public class RestAPITest {
     @Test
     public void deleteAnyRawTest() {
 
-    	String userid = "2";
+        String userid = "2";
 
-    	Response response = given().pathParam("userid",userid)
-    						.when().delete("/{userid}")
-    						.then().statusCode(200)
-    						.extract().response();
-					
-    	String body_v = get().getBody().asString();
-    	assertFalse("Failed to delete data",body_v.contains("ID="+userid+","));
+        Response response = given().pathParam("userid",userid)
+                            .when().delete("/{userid}")
+                            .then().statusCode(200)
+                            .extract().response();
+                    
+        String body_v = get().getBody().asString();
+        assertFalse("Failed to delete data",body_v.contains("ID="+userid+","));
     }
 
     @Test
     public void updateAnyRawTest() {
 
         int row = 4;
-    	String new_first_name = "Amy";
+        String new_first_name = "Amy";
 
-    	Response response = given().pathParam("userid",ids.get(row-1)).header("firstName",new_first_name)
-                        	.when().put("/{userid}")
-                        	.then().statusCode(200)
-                        	.extract().response();
+        Response response = given().pathParam("userid",ids.get(row-1)).header("firstName",new_first_name)
+                            .when().put("/{userid}")
+                            .then().statusCode(200)
+                            .extract().response();
 
         String body_v = given().pathParam("userid",ids.get(row-1)).get("/{userid}").getBody().asString();
         assertTrue("Failed to update data", body_v.contains("ID="+ids.get(row-1)+", FIRSTNAME="+new_first_name));
@@ -113,59 +113,59 @@ public class RestAPITest {
     @Test
     public void selectNonexistentDataTest() {
 
-    	String userid = "10";
+        String userid = "10";
 
-    	ValidatableResponse response = given().pathParam("userid",userid)
-    						.when().get("/{userid}")
-    						.then().statusCode(200);
+        ValidatableResponse response = given().pathParam("userid",userid)
+                            .when().get("/{userid}")
+                            .then().statusCode(200);
 
     }
 
     @Test
     public void deleteNonexistentDataTest() {
 
-    	String userid = "12";
+        String userid = "12";
 
-    	ValidatableResponse response = given().pathParam("userid",userid)
-    								   .when().delete("/{userid}")
-    								   .then().statusCode(200);
+        ValidatableResponse response = given().pathParam("userid",userid)
+                                       .when().delete("/{userid}")
+                                       .then().statusCode(200);
 
     }
 
     @Test
     public void updateNonexistentDataTest() {
-    	
-    	String new_first_name = "Amy";
-    	String userid = "41";
+        
+        String new_first_name = "Amy";
+        String userid = "41";
 
-    	ValidatableResponse response = given().pathParam("userid",userid)
-    										  .header("firstName",new_first_name)
-                        			   .when().put("/{userid}")
-                        			   .then().statusCode(200);
+        ValidatableResponse response = given().pathParam("userid",userid)
+                                              .header("firstName",new_first_name)
+                                       .when().put("/{userid}")
+                                       .then().statusCode(200);
 
     }
 
     @Test
     public void selectDeletedDataTest() {
 
-    	String userid = "1";
+        String userid = "1";
 
-    	given().pathParam("userid",userid)
-    	.when().delete("/{userid}")
-    	.then().statusCode(200);
+        given().pathParam("userid",userid)
+        .when().delete("/{userid}")
+        .then().statusCode(200);
 
-    	given().pathParam("userid",userid)
-    	.when().get("/{userid}")
-    	.then().statusCode(200)
-    	.extract().response();
+        given().pathParam("userid",userid)
+        .when().get("/{userid}")
+        .then().statusCode(200)
+        .extract().response();
     }
 
     @Test
     public void insertTooLongStringTest() {
 
-    	String tooLongfirstName = "TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
+        String tooLongfirstName = "TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
 
-		given().header("firstName",tooLongfirstName)
+        given().header("firstName",tooLongfirstName)
         .when().post()
         .then().statusCode(500);
     }
@@ -175,12 +175,12 @@ public class RestAPITest {
     @Test
     public void sqlInjectionTest() {
 
-    	String firstName = "Test','Test')--";
+        String firstName = "Test','Test')--";
 
-    	Response response = given().header("firstName",firstName)
-                        	.when().post()
-                        	.then().statusCode(200)
-                        	.extract().response();
+        Response response = given().header("firstName",firstName)
+                            .when().post()
+                            .then().statusCode(200)
+                            .extract().response();
 
         String body = response.getBody().asString();
         System.out.println("Inserted value: "+body);
@@ -197,13 +197,9 @@ public class RestAPITest {
             .extract().response();
         }
 
-        Response response = when().get()
-                            .then().statusCode(200)
-                            .extract().response();
-
         List<String> idss = new ArrayList<String>();
 
-        List<String> items = Arrays.asList(response.getBody().asString().split("},\\s"));
+        List<String> items = getAllRows();
         for (String i : items) {
             String id = i.substring(i.indexOf("ID=")+3, i.indexOf(","));
             idss.add(id);
@@ -213,19 +209,19 @@ public class RestAPITest {
     }
 
     public void cleanTable() {
-    	Response response = when().get()
-    						.then().statusCode(200)
-    						.extract().response();
+        
+        List<String> rows = getAllRows();
 
-    	List<String> items = Arrays.asList(response.getBody().asString().split("},\\s"));
+        for (String i : rows) {
+            String id = i.substring(i.indexOf("ID=")+3, i.indexOf(","));
+            given().pathParam("userid",id).when().delete("/{userid}");
+        }
+    }
 
-    	for (String i : items) {
-    		String id = i.substring(i.indexOf("ID=")+3, i.indexOf(","));
-			given().pathParam("userid",id)
-    						.when().delete("/{userid}")
-    						.then().statusCode(200);
-			
-		}
+    public List<String> getAllRows() {
+        Response res = get();
+        List<String> items = Arrays.asList(res.getBody().asString().split("},\\s"));
+        return items;
     }
 
 }
