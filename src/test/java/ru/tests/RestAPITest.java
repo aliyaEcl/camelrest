@@ -1,7 +1,8 @@
 package ru.tests;
 
 import java.util.*;
-
+import java.io.*;
+import org.json.*;
 import java.util.Random;
 
 import io.restassured.*;
@@ -39,12 +40,7 @@ public class RestAPITest {
     @Test
     public void selectAllDataTest() {
 
-        Response response = when().get()
-                            .then().statusCode(200)
-                                   .contentType("text/plain;charset=utf-8")
-                            .extract().response();
-
-        List<String> items = Arrays.asList(response.getBody().asString().split("},\\s"));
+        List<String> items = getAllRows();
 
         assertEquals("Invalid count of rows",firstNames.length,items.size());
     }
@@ -61,7 +57,6 @@ public class RestAPITest {
                             .extract().response();                  
 
         String body = response.getBody().asString();
-        System.out.println(body);
         assertEquals("No value was found","[{ID="+ids.get(row)+", FIRSTNAME="+firstNames[row]+", LASTNAME="+lastNames[row]+"}]",body);
     }
 
@@ -218,8 +213,10 @@ public class RestAPITest {
     }
 
     public List<String> getAllRows() {
-
-        Response res = get();
+        Response res = when().get()
+                      .then().statusCode(200)
+                             .contentType("text/plain;charset=utf-8")
+                      .extract().response();
         List<String> items = Arrays.asList(res.getBody().asString().split("},\\s"));
         return items;
     }
@@ -233,4 +230,39 @@ public class RestAPITest {
         return r.ints(0, max).limit(1).findFirst().getAsInt();
     }
 
+    public static String getProperty(String property, int row) {
+    	JSONArray jarray = getData();
+    	JSONObject jobject = new JSONObject(jarray.get(row-1).toString());
+	    return jobject.getString(property);
+    }
+
+    public static int getSize() {
+    	JSONArray jarray = getData();
+    	return jarray.length();
+    }
+
+    public static JSONArray getData() {
+    	InputStream file = RestAPITest.class.getResourceAsStream("/users.json");
+    	String jsonData = readFile(file);
+	    JSONObject jobj = new JSONObject(jsonData);
+	    JSONArray jarr = new JSONArray(jobj.getJSONArray("users").toString());
+	    return jarr;
+    }
+
+    public static String readFile(InputStream file) {
+	    String result = "";
+	    try {
+	    	BufferedReader br = new BufferedReader(new InputStreamReader(file));
+	        StringBuilder sb = new StringBuilder();
+	        String line = br.readLine();
+	        while (line != null) {
+	            sb.append(line);
+	            line = br.readLine();
+	        }
+	        result = sb.toString();
+	    } catch(Exception e) {
+	        e.printStackTrace();
+	    }
+	    return result;
+	}
 }
