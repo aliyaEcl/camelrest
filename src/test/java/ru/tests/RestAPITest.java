@@ -2,6 +2,8 @@ package ru.tests;
 
 import java.util.*;
 
+import java.util.Random;
+
 import io.restassured.*;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
@@ -50,10 +52,9 @@ public class RestAPITest {
     @Test
     public void selectAnyRowTest() {
 
-        int row = 3;
-        System.out.println(ids);
+        int row = getRandomRow(firstNames.length);
 
-        Response response = given().pathParam("userid",ids.get(row-1))
+        Response response = given().pathParam("userid",ids.get(row))
                             .when().get("/{userid}")
                             .then().statusCode(200)
                                    .contentType("text/plain;charset=utf-8")
@@ -61,7 +62,7 @@ public class RestAPITest {
 
         String body = response.getBody().asString();
         System.out.println(body);
-        assertEquals("No value was found","[{ID="+ids.get(row-1)+", FIRSTNAME="+firstNames[row-1]+", LASTNAME="+lastNames[row-1]+"}]",body);
+        assertEquals("No value was found","[{ID="+ids.get(row)+", FIRSTNAME="+firstNames[row]+", LASTNAME="+lastNames[row]+"}]",body);
     }
 
     @Test
@@ -84,30 +85,30 @@ public class RestAPITest {
     @Test
     public void deleteAnyRawTest() {
 
-        String userid = "2";
+        int row = getRandomRow(firstNames.length);;
 
-        Response response = given().pathParam("userid",userid)
+        Response response = given().pathParam("userid",ids.get(row))
                             .when().delete("/{userid}")
                             .then().statusCode(200)
                             .extract().response();
                     
         String body_v = get().getBody().asString();
-        assertFalse("Failed to delete data",body_v.contains("ID="+userid+","));
+        assertFalse("Failed to delete data",body_v.contains("ID="+ids.get(row)+","));
     }
 
     @Test
     public void updateAnyRawTest() {
 
-        int row = 4;
+        int row = getRandomRow(firstNames.length);;
         String new_first_name = "Amy";
 
-        Response response = given().pathParam("userid",ids.get(row-1)).header("firstName",new_first_name)
+        Response response = given().pathParam("userid",ids.get(row)).header("firstName",new_first_name)
                             .when().put("/{userid}")
                             .then().statusCode(200)
                             .extract().response();
 
-        String body_v = given().pathParam("userid",ids.get(row-1)).get("/{userid}").getBody().asString();
-        assertTrue("Failed to update data", body_v.contains("ID="+ids.get(row-1)+", FIRSTNAME="+new_first_name));
+        String body_v = given().pathParam("userid",ids.get(row)).get("/{userid}").getBody().asString();
+        assertTrue("Failed to update data", body_v.contains("ID="+ids.get(row)+", FIRSTNAME="+new_first_name));
     }
 
     @Test
@@ -201,8 +202,7 @@ public class RestAPITest {
 
         List<String> items = getAllRows();
         for (String i : items) {
-            String id = i.substring(i.indexOf("ID=")+3, i.indexOf(","));
-            idss.add(id);
+            idss.add(parseID(i));
         }
 
         return idss;
@@ -213,15 +213,24 @@ public class RestAPITest {
         List<String> rows = getAllRows();
 
         for (String i : rows) {
-            String id = i.substring(i.indexOf("ID=")+3, i.indexOf(","));
-            given().pathParam("userid",id).when().delete("/{userid}");
+            given().pathParam("userid",parseID(i)).when().delete("/{userid}");
         }
     }
 
     public List<String> getAllRows() {
+
         Response res = get();
         List<String> items = Arrays.asList(res.getBody().asString().split("},\\s"));
         return items;
+    }
+
+    public String parseID(String item) {
+        return item.substring(item.indexOf("ID=")+3, item.indexOf(","));
+    }
+
+    public int getRandomRow(int max) {
+        Random r = new Random();
+        return r.ints(0, max).limit(1).findFirst().getAsInt();
     }
 
 }
