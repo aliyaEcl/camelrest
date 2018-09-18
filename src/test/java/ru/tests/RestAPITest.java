@@ -1,9 +1,6 @@
 package ru.tests;
 
 import java.util.*;
-import java.io.*;
-import org.json.*;
-import java.util.Random;
 
 import io.restassured.*;
 import io.restassured.response.Response;
@@ -16,19 +13,25 @@ import static org.junit.Assert.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ru.tests.TestData.*;
+
 public class RestAPITest {
 
+    int q;
     List<String> ids;
+    TestData td;
 
     final Logger logger = LoggerFactory.getLogger(RestAPITest.class);
-
-    String[] firstNames = {"Tom","Peter","Bern","Harry","Anna"};
-    String[] lastNames = {"Connor","Smith","Doe","Potter","Adams"};
 
     @Before
     public void setup() {
         RestAssured.baseURI = "http://localhost:28080/rs/users";
-        ids = createTestData(firstNames, lastNames);
+        td = new TestData("/users.json");
+        q = td.getSize();
+        ids = new ArrayList<String>();
+        for (int j=0; j<q; j++){
+            ids.add(createTestData(td.getValue("firstName",j), td.getValue("lastName",j)));
+        }
 //        logger.info("test message");
     }
 
@@ -42,14 +45,13 @@ public class RestAPITest {
 
         List<String> items = getAllRows();
 
-        assertEquals("Invalid count of rows",firstNames.length,items.size());
+        assertEquals("Invalid count of rows",q,items.size());
     }
 
     @Test
     public void selectAnyRowTest() {
-
-        int row = getRandomRow(firstNames.length);
-
+        //ids.get(row)
+        int row = getRandomRow(q);
         Response response = given().pathParam("userid",ids.get(row))
                             .when().get("/{userid}")
                             .then().statusCode(200)
@@ -57,7 +59,7 @@ public class RestAPITest {
                             .extract().response();                  
 
         String body = response.getBody().asString();
-        assertEquals("No value was found","[{ID="+ids.get(row)+", FIRSTNAME="+firstNames[row]+", LASTNAME="+lastNames[row]+"}]",body);
+        assertEquals("No value was found","[{ID="+ids.get(row)+", FIRSTNAME="+td.getValue("firstName",row)+", LASTNAME="+td.getValue("lastName",row)+"}]",body);
     }
 
     @Test
@@ -80,7 +82,7 @@ public class RestAPITest {
     @Test
     public void deleteAnyRawTest() {
 
-        int row = getRandomRow(firstNames.length);;
+        int row = getRandomRow(q);
 
         Response response = given().pathParam("userid",ids.get(row))
                             .when().delete("/{userid}")
@@ -94,8 +96,8 @@ public class RestAPITest {
     @Test
     public void updateAnyRawTest() {
 
-        int row = getRandomRow(firstNames.length);;
-        String new_first_name = "Amy";
+        int row = getRandomRow(q);;
+        String new_first_name = "Lol";
 
         Response response = given().pathParam("userid",ids.get(row)).header("firstName",new_first_name)
                             .when().put("/{userid}")
@@ -183,24 +185,13 @@ public class RestAPITest {
         assertEquals("Invalid values inserted","[{ID=3, FIRSTNAME=Test','Test')--, LASTNAME=}]",body);
     }
 
-    public List<String> createTestData(String[] names, String[] surnames) {
-
-        for (int i=0; i<names.length ; i++) {
-            given().header("firstName",names[i])
-                   .header("lastName",surnames[i])
-            .when().post()
-            .then().statusCode(200)
-            .extract().response();
-        }
-
-        List<String> idss = new ArrayList<String>();
-
-        List<String> items = getAllRows();
-        for (String i : items) {
-            idss.add(parseID(i));
-        }
-
-        return idss;
+    public String createTestData(String name, String surname) {
+        Response rs = given().header("firstName",name)
+               .header("lastName",surname)
+        .when().post()
+        .then().statusCode(200)
+        .extract().response();
+        return parseID(rs.getBody().asString());
     }
 
     public void cleanTable() {
@@ -229,40 +220,4 @@ public class RestAPITest {
         Random r = new Random();
         return r.ints(0, max).limit(1).findFirst().getAsInt();
     }
-
-    public static String getProperty(String property, int row) {
-    	JSONArray jarray = getData();
-    	JSONObject jobject = new JSONObject(jarray.get(row-1).toString());
-	    return jobject.getString(property);
-    }
-
-    public static int getSize() {
-    	JSONArray jarray = getData();
-    	return jarray.length();
-    }
-
-    public static JSONArray getData() {
-    	InputStream file = RestAPITest.class.getResourceAsStream("/users.json");
-    	String jsonData = readFile(file);
-	    JSONObject jobj = new JSONObject(jsonData);
-	    JSONArray jarr = new JSONArray(jobj.getJSONArray("users").toString());
-	    return jarr;
-    }
-
-    public static String readFile(InputStream file) {
-	    String result = "";
-	    try {
-	    	BufferedReader br = new BufferedReader(new InputStreamReader(file));
-	        StringBuilder sb = new StringBuilder();
-	        String line = br.readLine();
-	        while (line != null) {
-	            sb.append(line);
-	            line = br.readLine();
-	        }
-	        result = sb.toString();
-	    } catch(Exception e) {
-	        e.printStackTrace();
-	    }
-	    return result;
-	}
 }

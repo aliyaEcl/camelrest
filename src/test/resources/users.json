@@ -1,8 +1,8 @@
 {
 	"users": [
-		{"firstName": "Peter", "lastName": "Smith"},
+		{"firstName": "Peter", "lastName": "Anders"},
 		{"firstName": "John", "lastName": "Smith"},
-		{"firstName": "Ivan", "lastName": "Smith"},
+		{"firstName": "Ivan", "lastName": "Petrov"},
 		{"firstName": "Harry", "lastName": "Potter"},
 		{"firstName": "Sarah", "lastName": "Connor"},
 		{"firstName": "Amy", "lastName": "Bobson"},
