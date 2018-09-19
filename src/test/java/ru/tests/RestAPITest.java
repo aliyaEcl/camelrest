@@ -10,24 +10,32 @@ import static io.restassured.RestAssured.*;
 import org.junit.*;
 import static org.junit.Assert.*;
 
+import io.qameta.allure.junit4.*;
+import io.qameta.allure.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ru.tests.TestData.*;
+import static ru.tests.TestRequest.*;
 
 public class RestAPITest {
 
-    int q;
+    static int q;
+    static TestData td;
     List<String> ids;
-    TestData td;
 
     final Logger logger = LoggerFactory.getLogger(RestAPITest.class);
 
+    @BeforeClass
+    public static void setupBeforeAll() {
+        td = new TestData("/users.json");
+        RestAssured.baseURI = "http://localhost:28080/rs/users";
+        q = td.getSize();
+    }
+
     @Before
     public void setup() {
-        RestAssured.baseURI = "http://localhost:28080/rs/users";
-        td = new TestData("/users.json");
-        q = td.getSize();
         ids = new ArrayList<String>();
         for (int j=0; j<q; j++){
             ids.add(createTestData(td.getValue("firstName",j), td.getValue("lastName",j)));
@@ -41,6 +49,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Select all rows")
+    @Description("Select all rows from a table and check the count of rows and values.")
     public void selectAllDataTest() {
 
         List<String> items = getAllRows();
@@ -49,6 +59,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Select one row")
+    @Description("Select one row from a table and verify values.")
     public void selectAnyRowTest() {
         //ids.get(row)
         int row = getRandomRow(q);
@@ -63,6 +75,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Insert new value")
+    @Description("Insert new valid value and check the result.")
     public void insertNewValueTest() {
 
         String firstName = "Clint";
@@ -80,6 +94,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Delete one row")
+    @Description("Delete one row from a table and check the result.")
     public void deleteAnyRawTest() {
 
         int row = getRandomRow(q);
@@ -94,9 +110,11 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Update one row")
+    @Description("Update one row with a valid value.")
     public void updateAnyRawTest() {
 
-        int row = getRandomRow(q);;
+        int row = getRandomRow(q);
         String new_first_name = "Lol";
 
         Response response = given().pathParam("userid",ids.get(row)).header("firstName",new_first_name)
@@ -109,6 +127,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Select nonexisting row")
+    @Description("Select nonexisting row, check status code, nothing should returned.")
     public void selectNonexistentDataTest() {
 
         String userid = "10";
@@ -120,6 +140,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Delete nonexisting row")
+    @Description("Delete nonexisting row, and check status code, nothing should deleted")
     public void deleteNonexistentDataTest() {
 
         String userid = "12";
@@ -131,6 +153,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Update nonexisting row")
+    @Description("Update nonexisting row, and check status code, nothing should updated")
     public void updateNonexistentDataTest() {
         
         String new_first_name = "Amy";
@@ -144,6 +168,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Select deleted row")
+    @Description("Delete a row and try to select it. Check status code, nothing should returned")
     public void selectDeletedDataTest() {
 
         String userid = "1";
@@ -159,6 +185,8 @@ public class RestAPITest {
     }
 
     @Test
+    @DisplayName("Insert too long value")
+    @Description("Insert invalid (too long) value and check the status code, nothig should inserted.")
     public void insertTooLongStringTest() {
 
         String tooLongfirstName = "TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
@@ -171,6 +199,8 @@ public class RestAPITest {
 //bonus test
     @Ignore
     @Test
+    @DisplayName("Insertion with SQL injection")
+    @Description("Insert a value that contains SQL injection: Test','Test')--. Check that this value inserted to firstName column, lastName column should stay empty.")
     public void sqlInjectionTest() {
 
         String firstName = "Test','Test')--";
@@ -185,24 +215,23 @@ public class RestAPITest {
         assertEquals("Invalid values inserted","[{ID=3, FIRSTNAME=Test','Test')--, LASTNAME=}]",body);
     }
 
+    @Step("Insert test data into a table")
     public String createTestData(String name, String surname) {
-        Response rs = given().header("firstName",name)
-               .header("lastName",surname)
-        .when().post()
-        .then().statusCode(200)
-        .extract().response();
-        return parseID(rs.getBody().asString());
+        String res = TestRequest.insertOneRow(name,surname);
+        return parseID(res);
     }
 
+    @Step("Delete test data from a table")
     public void cleanTable() {
         
         List<String> rows = getAllRows();
 
         for (String i : rows) {
-            given().pathParam("userid",parseID(i)).when().delete("/{userid}");
+            TestRequest.deleteOneRow(parseID(i));
         }
     }
 
+    @Step("Send GET request to select all rows from a table")
     public List<String> getAllRows() {
         Response res = when().get()
                       .then().statusCode(200)
